@@ -1,18 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_squared_error
-
 class KelvinVoigtModel:
     def __init__(self, E, eta, dt):
-        self.E = E  # Young's modulus (elastic modulus)
-        self.eta = eta  # Viscosity coefficient
-        self.dt = dt  # Time step
-
+        self.E = E  
+        self.eta = eta  
+        self.dt = dt  
     def step_strain(self, t_max, strain_step):
         time = np.arange(0, t_max, self.dt)
         strain = np.zeros_like(time)
         stress = np.zeros_like(time)
-
         for i in range(len(time)):
             if i == 0:
                 stress[i] = 0.0
@@ -20,56 +17,42 @@ class KelvinVoigtModel:
                 stress_elastic = self.E * strain[i-1]
                 stress_viscous = self.eta * (strain[i-1] - strain[i-2]) / self.dt
                 stress[i] = stress_elastic + stress_viscous
-
             if time[i] <= 1.0:
                 strain[i] = strain_step * time[i]
-
         return time, strain, stress
-
     def relaxation(self, t_max):
         time = np.arange(0, t_max, self.dt)
         strain = np.zeros_like(time)
         stress = np.zeros_like(time)
-
         for i in range(len(time)):
             if i == 0:
                 stress[i] = 0.0
             else:
                 stress[i] = stress[i-1] - (stress[i-1] / (self.E * self.dt))
-
         return time, strain, stress
-
     def ramp_loading(self, t_max, ramp_rate):
         time = np.arange(0, t_max, self.dt)
         strain = np.zeros_like(time)
         stress = np.zeros_like(time)
-
         for i in range(len(time)):
             if i == 0:
                 stress[i] = 0.0
             else:
                 stress[i] = stress[i-1] + ramp_rate * self.E * self.dt
-
         strain = stress / self.E
-
         return time, strain, stress
-
     def validate_model(self, experimental_time, experimental_stress):
         # Simulate stress response using the model
         simulated_stress = self.E * np.gradient(experimental_time, experimental_stress) + \
                            self.eta * np.gradient(experimental_stress, experimental_time)
-
         # Calculate metrics
         r2 = r2_score(experimental_stress, simulated_stress)
         mse = mean_squared_error(experimental_stress, simulated_stress)
-
         return r2, mse, simulated_stress
 
-# Example experimental data
 experimental_time = np.linspace(0, 10, 100)
 experimental_stress = 1.0 * experimental_time + np.random.normal(scale=0.1, size=len(experimental_time))
 
-# Simulation parameters
 E = 1.0  # Young's modulus of the spring (elastic modulus)
 eta = 0.5  # Viscosity coefficient (dashpot viscosity)
 dt = 0.01  # Time step
